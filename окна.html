@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Онлайн-калькулятор стоимости работ</title>
+  <style>
+    /* =====================================================================
+       БАЗОВАЯ ПАЛИТРА И ПЕРЕМЕННЫЕ
+       Акцентный цвет (--accent) автоматически задаётся из CONFIG.accentColor
+       ===================================================================== */
+    :root {
+      --bg-page: #f5f6f8;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f0f2f5;
+      --border-color: #dcdfe6;
+      --border-strong: #c2c7d0;
+      --text-primary: #181a1f;
+      --text-secondary: #5a606d;
+      --text-muted: #848b98;
+
+      --accent: #c92a32;
+      --accent-hover: #a82027;
+      --accent-soft: rgba(201, 42, 50, 0.08);
+      --accent-border: rgba(201, 42, 50, 0.35);
+
+      --warn-bg: #fff8eb;
+      --warn-border: #f5d08a;
+      --warn-text: #8a5300;
+
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-text: #b91c1c;
+
+      --success-bg: #ecfdf5;
+      --success-border: #a7f3d0;
+      --success-text: #065f46;
+
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --t-fast: 160ms;
+      --t-exit: 180ms;
+      --t-enter: 340ms;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+
+      --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.05);
+      --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.07);
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* =====================================================================
+       ШАПКА (ТЕКСТОВЫЙ ЛОГОТИП С АКЦЕНТНОЙ ТОЧКОЙ И ПОДЗАГОЛОВКОМ)
+       ===================================================================== */
+    .topbar {
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .topbar-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
+      transition: opacity var(--t-fast) var(--ease-out);
+    }
+
+    .brand-logo:hover {
+      opacity: 0.85;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .topbar-note {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* =====================================================================
+       ОСНОВНОЙ КОНТЕЙНЕР И ЗАГОЛОВОК
+       ===================================================================== */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .hero {
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 720px;
+    }
+
+    /* =====================================================================
+       КЛИКАБЕЛЬНЫЙ ИНДИКАТОР 3 ШАГОВ И АНИМИРОВАННАЯ ПОЛОСА ПРОГРЕССА
+       ===================================================================== */
+    .stepper-wrap {
+      margin-bottom: 28px;
+    }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .step-pill {
+      min-height: 48px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-align: left;
+      cursor: pointer;
+      transition:
+        border-color var(--t-fast) var(--ease-out),
+        background-color var(--t-fast) var(--ease-out),
+        color var(--t-fast) var(--ease-out),
+        box-shadow 220ms var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .step-pill:hover:not(:disabled) {
+      border-color: var(--border-strong);
+    }
+
+    .step-pill:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+
+    .step-pill:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .step-pill.active {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--text-primary);
+      font-weight: 600;
+      box-shadow: 0 2px 10px var(--accent-soft);
+    }
+
+    .step-pill.done {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: var(--bg-subtle);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition:
+        background-color 260ms var(--ease-out),
+        color 260ms var(--ease-out),
+        transform 260ms var(--ease-out);
+    }
+
+    .step-pill.active .step-num {
+      background-color: var(--accent);
+      color: #ffffff;
+      transform: scale(1.08);
+    }
+
+    .step-pill.done .step-num {
+      background-color: var(--text-primary);
+      color: #ffffff;
+    }
+
+    .stepper-track {
+      height: 3px;
+      width: 100%;
+      background-color: var(--border-color);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .stepper-progress {
+      height: 100%;
+      width: 33.333%;
+      background-color: var(--accent);
+      border-radius: 999px;
+      transition: width 0.38s var(--ease-out), background-color 240ms var(--ease-out);
+    }
+
+    /* =====================================================================
+       ДВУХФАЗНАЯ НАПРАВЛЕННАЯ АНИМАЦИЯ ПЕРЕХОДА МЕЖДУ ОКНАМИ 1, 2 И 3
+       ===================================================================== */
+    .screens-viewport {
+      position: relative;
+    }
+
+    .screen {
+      display: none;
+      will-change: transform, opacity;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .screen.exit-forward {
+      animation: stepExitForward var(--t-exit) var(--ease-out) both;
+      pointer-events: none;
+    }
+
+    .screen.exit-backward {
+      animation: stepExitBackward var(--t-exit) var(--ease-out) both;
+      pointer-events: none;
+    }
+
+    .screen.enter-forward {
+      animation: stepEnterForward var(--t-enter) var(--ease-out) both;
+    }
+
+    .screen.enter-backward {
+      animation: stepEnterBackward var(--t-enter) var(--ease-out) both;
+    }
+
+    @keyframes stepExitForward {
+      from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+      to {
+        opacity: 0;
+        transform: translate3d(-24px, 0, 0);
+      }
+    }
+
+    @keyframes stepExitBackward {
+      from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+      to {
+        opacity: 0;
+        transform: translate3d(24px, 0, 0);
+      }
+    }
+
+    @keyframes stepEnterForward {
+      from {
+        opacity: 0;
+        transform: translate3d(28px, 0, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    @keyframes stepEnterBackward {
+      from {
+        opacity: 0;
+        transform: translate3d(-28px, 0, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    @keyframes cardFadeIn {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 12px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: cardFadeIn 0.36s var(--ease-out) both;
+      animation-delay: calc(var(--i, 0) * 45ms);
+      transition:
+        border-color var(--t-fast) var(--ease-out),
+        box-shadow 220ms var(--ease-out),
+        transform 220ms var(--ease-out);
+    }
+
+    .card:hover {
+      border-color: var(--accent-border);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .category-badge {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background-color: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+    }
+
+    /* =====================================================================
+       CSS-ЗАГЛУШКИ И ГЕОМЕТРИЧЕСКИЕ СИЛУЭТЫ НА ШАГЕ 2 (БЕЗ ВНЕШНИХ КАРТИНОК)
+       ===================================================================== */
+    .model-stub {
+      height: 160px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(24, 26, 31, 0.06);
+    }
+
+    .stub-tone-1 {
+      background: linear-gradient(135deg, #f3ebec 0%, #e7dcde 100%);
+    }
+
+    .stub-tone-2 {
+      background: linear-gradient(135deg, #eceef2 0%, #dde1e8 100%);
+    }
+
+    .stub-tone-3 {
+      background: linear-gradient(135deg, #efeae6 0%, #e2dad3 100%);
+    }
+
+    .sil-anim {
+      transition: transform 280ms var(--ease-out);
+    }
+
+    .card:hover .sil-anim {
+      transform: translateY(-3px) scale(1.03);
+    }
+
+    /* 1. Силуэт: Офисная перегородка (каркас, витражные секции, дверной блок) */
+    .sil-partition {
+      width: 148px;
+      height: 108px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid rgba(24, 26, 31, 0.28);
+      border-radius: 3px;
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      gap: 3px;
+      padding: 4px;
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.06);
+    }
+
+    .sil-partition .pane {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .sil-partition .glass-top {
+      flex: 1.4;
+      background: linear-gradient(135deg, rgba(210, 224, 240, 0.55), rgba(255, 255, 255, 0.9));
+      border: 1px solid rgba(24, 26, 31, 0.18);
+      border-radius: 2px;
+    }
+
+    .sil-partition .solid-bottom {
+      flex: 1;
+      background: rgba(24, 26, 31, 0.08);
+      border: 1px solid rgba(24, 26, 31, 0.18);
+      border-radius: 2px;
+    }
+
+    .sil-partition .door-leaf {
+      border: 1.5px solid var(--accent);
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .sil-partition .door-leaf::after {
+      content: "";
+      position: absolute;
+      top: 48%;
+      right: 5px;
+      width: 3px;
+      height: 12px;
+      border-radius: 2px;
+      background-color: var(--accent);
+    }
+
+    /* 2. Силуэт: Оконная рама со створками и фурнитурой */
+    .sil-window {
+      width: 118px;
+      height: 114px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2.5px solid rgba(24, 26, 31, 0.3);
+      border-radius: 3px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 5px;
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.06);
+      position: relative;
+    }
+
+    .sil-window::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: -6px;
+      right: -6px;
+      height: 4px;
+      background: rgba(24, 26, 31, 0.32);
+      border-radius: 2px;
+    }
+
+    .sil-window .sash {
+      border: 1.5px solid rgba(24, 26, 31, 0.22);
+      background: linear-gradient(135deg, rgba(215, 230, 245, 0.55) 0%, rgba(255, 255, 255, 0.95) 100%);
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .sil-window .sash.active-sash {
+      border-color: var(--accent);
+    }
+
+    .sil-window .sash.active-sash::after {
+      content: "";
+      position: absolute;
+      top: 44%;
+      left: 4px;
+      width: 3px;
+      height: 13px;
+      border-radius: 2px;
+      background-color: var(--accent);
+    }
+
+    /* 3. Силуэт: Балконное остекление и парапет */
+    .sil-balcony-repair {
+      width: 146px;
+      height: 112px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid rgba(24, 26, 31, 0.28);
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      padding: 4px;
+      gap: 4px;
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.06);
+    }
+
+    .sil-balcony-repair .glazing-row {
+      flex: 1.3;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+
+    .sil-balcony-repair .glazing-row span {
+      border: 1px solid rgba(24, 26, 31, 0.2);
+      background: linear-gradient(180deg, rgba(215, 228, 242, 0.5), rgba(255, 255, 255, 0.9));
+      border-radius: 2px;
+    }
+
+    .sil-balcony-repair .glazing-row span:nth-child(2) {
+      border-color: var(--accent);
+    }
+
+    .sil-balcony-repair .parapet-row {
+      flex: 1;
+      background: rgba(24, 26, 31, 0.1);
+      border-top: 2px solid rgba(24, 26, 31, 0.28);
+      border-radius: 1px;
+    }
+
+    /* 4. Силуэт: Обшивка стен балкона (вертикальные панели / вагонка) */
+    .sil-balcony-finish {
+      width: 136px;
+      height: 112px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2px solid rgba(24, 26, 31, 0.26);
+      border-radius: 3px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 2px;
+      padding: 5px;
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.06);
+      position: relative;
+    }
+
+    .sil-balcony-finish span {
+      background: linear-gradient(180deg, #f6f1eb 0%, #e7ddd1 100%);
+      border: 1px solid rgba(24, 26, 31, 0.15);
+      border-radius: 1px;
+    }
+
+    .sil-balcony-finish::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      bottom: 5px;
+      height: 12px;
+      background: var(--accent);
+      opacity: 0.85;
+      border-radius: 1px;
+    }
+
+    /* 5. Силуэт: Многослойное утепление балкона */
+    .sil-balcony-insulation {
+      width: 136px;
+      height: 112px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2px solid rgba(24, 26, 31, 0.26);
+      border-radius: 3px;
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 0.45fr 0.8fr;
+      gap: 3px;
+      padding: 6px;
+      box-shadow: 0 6px 14px rgba(16, 24, 40, 0.06);
+    }
+
+    .sil-balcony-insulation .layer-wall {
+      background: rgba(24, 26, 31, 0.16);
+      border-radius: 2px;
+    }
+
+    .sil-balcony-insulation .layer-foam {
+      background: var(--accent-soft);
+      border: 1.5px solid var(--accent);
+      border-radius: 2px;
+    }
+
+    .sil-balcony-insulation .layer-foil {
+      background: linear-gradient(180deg, #dce3ec, #b8c4d4);
+      border-radius: 1px;
+    }
+
+    .sil-balcony-insulation .layer-finish {
+      background: #f3efe9;
+      border: 1px solid rgba(24, 26, 31, 0.18);
+      border-radius: 2px;
+    }
+
+    .model-meta {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 12px;
+      margin-bottom: 14px;
+      border-top: 1px solid var(--bg-subtle);
+    }
+
+    .model-dims {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .model-price {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* =====================================================================
+       КНОПКИ (ВЫСОТА ОТ 44PX)
+       ===================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition:
+        background-color var(--t-fast) var(--ease-out),
+        border-color var(--t-fast) var(--ease-out),
+        color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-outline {
+      background-color: var(--bg-surface);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      border-color: var(--border-strong);
+      background-color: var(--bg-subtle);
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    /* =====================================================================
+       ШАГ 3: КОМПАКТНАЯ ИНФОРМАЦИОННАЯ ПОЛОСА (БЕЗ ФОТО) И КОНФИГУРАТОР
+       ===================================================================== */
+    .selected-bar {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .selected-bar-info {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .selected-bar-cat {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      background-color: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .selected-bar-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .link-btn {
+      min-height: 40px;
+      background: none;
+      border: none;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .config-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel + .panel {
+      margin-top: 18px;
+    }
+
+    .panel-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: var(--text-primary);
+    }
+
+    .field-group {
+      margin-bottom: 20px;
+    }
+
+    .field-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    /* Карточки выбора опций (конфигурация, материалы, комплектация) */
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .option-card {
+      min-height: 58px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background-color: var(--bg-surface);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      transition:
+        border-color var(--t-fast) var(--ease-out),
+        background-color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .option-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .option-card:active {
+      transform: scale(0.985);
+    }
+
+    .option-card.selected {
+      border-color: var(--accent);
+      background-color: var(--accent-soft);
+    }
+
+    .option-card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .swatch-chip {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      flex-shrink: 0;
+    }
+
+    .option-card-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Слайдеры и числовые поля объёмов/размеров */
+    .dim-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    /* Плавное раскрытие/сворачивание дополнительного параметра через CSS Grid */
+    .dim-collapse {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-top: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition:
+        grid-template-rows 0.32s var(--ease-out),
+        opacity 240ms var(--ease-out),
+        margin-top 0.32s var(--ease-out),
+        transform 0.32s var(--ease-out);
+    }
+
+    .dim-collapse.is-open {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin-top: 14px;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .dim-collapse-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .dim-box {
+      background-color: var(--bg-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .dim-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .dim-controls input[type="range"] {
+      flex: 1;
+      height: 6px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .dim-num-wrap {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding-right: 10px;
+    }
+
+    .dim-num-wrap:focus-within {
+      border-color: var(--accent);
+    }
+
+    .dim-num-wrap input[type="number"] {
+      width: 68px;
+      height: 42px;
+      border: none;
+      background: transparent;
+      text-align: right;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding: 0 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dim-num-wrap input[type="number"]:focus {
+      outline: none;
+    }
+
+    .dim-unit {
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .dim-bounds {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .size-hint {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background-color: var(--bg-subtle);
+      border: 1px solid transparent;
+      transition:
+        background-color 220ms var(--ease-out),
+        color 220ms var(--ease-out),
+        border-color 220ms var(--ease-out);
+    }
+
+    .size-hint.custom-warn {
+      background-color: var(--warn-bg);
+      border-color: var(--warn-border);
+      color: var(--warn-text);
+      font-weight: 500;
+    }
+
+    /* Чекбоксы дополнительных опций */
+    .check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .check-item {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      transition:
+        background-color var(--t-fast) var(--ease-out),
+        border-color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .check-item:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    .check-item:active {
+      transform: scale(0.985);
+    }
+
+    .check-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .check-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .check-item-price {
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* =====================================================================
+       ПРАВАЯ КОЛОНКА: ИТОГОВАЯ ЦЕНА И ФОРМА ЗАЯВКИ
+       ===================================================================== */
+    .sticky-summary {
+      position: sticky;
+      top: 20px;
+    }
+
+    .price-card {
+      background-color: var(--bg-surface);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .price-caption {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .price-total {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .price-range {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .breakdown {
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 0;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--text-secondary);
+    }
+
+    .breakdown-row strong {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .input-control {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--text-primary);
+      background-color: var(--bg-surface);
+      transition: border-color var(--t-fast) var(--ease-out);
+    }
+
+    .input-control:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    textarea.input-control {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    .consent-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
+    .consent-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    /* Скрытое honeypot-поле от спама */
+    .hp-trap {
+      position: absolute !important;
+      left: -9999px !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .form-error {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background-color: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
+      font-size: 13px;
+    }
+
+    .form-error.visible {
+      display: block;
+    }
+
+    /* Плавное разворачивание блока результата отправки через CSS Grid */
+    .result-box {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-top: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      border-radius: var(--radius-md);
+      background-color: var(--success-bg);
+      border: 1px solid transparent;
+      color: var(--success-text);
+      font-size: 14px;
+      transition:
+        grid-template-rows 0.32s var(--ease-out),
+        opacity 260ms var(--ease-out),
+        margin-top 0.32s var(--ease-out),
+        transform 0.32s var(--ease-out),
+        border-color 260ms var(--ease-out);
+    }
+
+    .result-box.visible {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin-top: 18px;
+      transform: translateY(0);
+      pointer-events: auto;
+      border-color: var(--success-border);
+    }
+
+    .result-box-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .result-box-content {
+      padding: 16px;
+    }
+
+    .result-box h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .result-preview {
+      margin-top: 10px;
+      padding: 12px;
+      background-color: #ffffff;
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .copy-btn {
+      margin-top: 10px;
+      min-height: 44px;
+      width: 100%;
+      background-color: #ffffff;
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-sm);
+      color: var(--success-text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition:
+        background-color var(--t-fast) var(--ease-out),
+        transform var(--t-fast) var(--ease-out);
+    }
+
+    .copy-btn:hover {
+      background-color: #f0fdf4;
+    }
+
+    .copy-btn:active {
+      transform: scale(0.985);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .config-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sticky-summary {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+
+      .stepper {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .container {
+        padding: 20px 16px 56px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Шапка с текстовым логотипом без внешних картинок -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#" class="brand-logo" onclick="goToStep(1); return false;">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span id="brand-name-text">Ваша компания</span>
+      </a>
+      <div class="topbar-note" id="header-subtitle">Онлайн-калькулятор стоимости работ</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Заголовок страницы -->
+    <section class="hero">
+      <h1 id="hero-title">Расчёт стоимости работ по вашим параметрам</h1>
+      <p id="hero-subtitle">Выберите направление работ и подходящий вариант, укажите объём и комплектацию — расчёт обновится автоматически.</p>
+    </section>
+
+    <!-- Кликабельный индикатор 3 шагов и анимированная полоса прогресса -->
+    <div class="stepper-wrap">
+      <nav class="stepper" aria-label="Этапы расчёта">
+        <button type="button" class="step-pill active" id="nav-step-1" onclick="goToStep(1)">
+          <span class="step-num">1</span>
+          <span>1. Выбор услуги</span>
+        </button>
+        <button type="button" class="step-pill" id="nav-step-2" onclick="goToStep(2)" disabled>
+          <span class="step-num">2</span>
+          <span>2. Вариант работ</span>
+        </button>
+        <button type="button" class="step-pill" id="nav-step-3" onclick="goToStep(3)" disabled>
+          <span class="step-num">3</span>
+          <span>3. Параметры и заявка</span>
+        </button>
+      </nav>
+      <div class="stepper-track" aria-hidden="true">
+        <div class="stepper-progress" id="stepper-progress"></div>
+      </div>
+    </div>
+
+    <div class="screens-viewport">
+      <!-- ШАГ 1: Выбор услуги из 5 направлений -->
+      <section class="screen active" id="screen-1" aria-labelledby="step1-heading">
+        <div class="section-head">
+          <h2 class="section-title" id="step1-heading">Выберите направление работ</h2>
+        </div>
+        <div class="cards-grid" id="categories-grid"></div>
+      </section>
+
+      <!-- ШАГ 2: Выбор варианта работ из карточек с CSS-заглушками -->
+      <section class="screen" id="screen-2" aria-labelledby="models-section-title">
+        <div class="section-head">
+          <h2 class="section-title" id="models-section-title">Выберите вариант работ</h2>
+          <button type="button" class="btn btn-outline" onclick="goToStep(1)">← Назад к списку услуг</button>
+        </div>
+        <div class="cards-grid" id="models-grid"></div>
+      </section>
+
+      <!-- ШАГ 3: Конфигуратор выбранного варианта (БЕЗ фото/силуэтов) и форма заявки -->
+      <section class="screen" id="screen-3" aria-label="Параметры работ и заявка">
+        <!-- Компактная информационная полоса выбранной услуги и варианта -->
+        <div class="selected-bar">
+          <div class="selected-bar-info">
+            <span class="selected-bar-cat" id="selected-cat-badge">Услуга</span>
+            <span class="selected-bar-name" id="selected-model-title">Вариант работ</span>
+          </div>
+          <button type="button" class="link-btn" onclick="goToStep(2)">Сменить вариант</button>
+        </div>
+
+        <div class="config-layout">
+          <!-- Левая колонка: динамические параметры под выбранную категорию услуг -->
+          <div>
+            <div class="panel">
+              <h2 class="panel-title">1. Объём работ и тип конструкции</h2>
+
+              <div class="field-group">
+                <label class="field-label" id="layouts-group-label">Конфигурация объекта</label>
+                <div class="option-grid" id="layouts-grid" role="radiogroup" aria-labelledby="layouts-group-label"></div>
+              </div>
+
+              <div class="field-group">
+                <div class="dim-grid">
+                  <!-- Основной объём / количество -->
+                  <div class="dim-box">
+                    <label class="field-label" for="primary-num" id="primary-dim-label">Объём работ</label>
+                    <div class="dim-controls">
+                      <input type="range" id="primary-range" aria-label="Основной объём ползунок" oninput="syncDimension('primary', this.value, false)" />
+                      <div class="dim-num-wrap">
+                        <input type="number" id="primary-num" inputmode="decimal" oninput="syncDimension('primary', this.value, true)" />
+                        <span class="dim-unit" id="primary-dim-unit">м²</span>
+                      </div>
+                    </div>
+                    <div class="dim-bounds" id="primary-bounds"></div>
+                  </div>
+                </div>
+
+                <!-- Дополнительный параметр с плавным раскрытием через CSS Grid -->
+                <div class="dim-collapse" id="secondary-collapse" aria-hidden="true">
+                  <div class="dim-collapse-inner">
+                    <div class="dim-box">
+                      <label class="field-label" for="secondary-num" id="secondary-dim-label">Дополнительный параметр</label>
+                      <div class="dim-controls">
+                        <input type="range" id="secondary-range" aria-label="Дополнительный параметр ползунок" oninput="syncDimension('secondary', this.value, false)" />
+                        <div class="dim-num-wrap">
+                          <input type="number" id="secondary-num" inputmode="decimal" oninput="syncDimension('secondary', this.value, true)" />
+                          <span class="dim-unit" id="secondary-dim-unit">шт.</span>
+                        </div>
+                      </div>
+                      <div class="dim-bounds" id="secondary-bounds"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="size-hint" id="custom-size-note" role="status" aria-live="polite">
+                  Выезд мастера для точного замера и составления сметы.
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">2. Материалы, комплектация и дополнительные работы</h2>
+
+              <div class="field-group">
+                <label class="field-label" id="materials-group-label">Материалы и исполнение</label>
+                <div class="option-grid" id="materials-grid" role="radiogroup" aria-labelledby="materials-group-label"></div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Дополнительные опции</label>
+                <div class="check-list" id="extras-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Правая колонка: заметный блок итоговой цены и форма заявки -->
+          <aside class="sticky-summary" aria-label="Смета и отправка заявки">
+            <div class="price-card">
+              <div class="price-caption">Предварительный расчёт</div>
+              <div class="price-total" id="total-price" aria-live="polite">0 ₽</div>
+              <div class="price-range" id="price-range-text">Диапазон с учётом комплектации</div>
+
+              <div class="breakdown">
+                <div class="breakdown-row">
+                  <span>База и объём работ:</span>
+                  <strong id="bd-base">0 ₽</strong>
+                </div>
+                <div class="breakdown-row">
+                  <span>Конфигурация и материалы:</span>
+                  <strong id="bd-material">0 ₽</strong>
+                </div>
+                <div class="breakdown-row">
+                  <span>Дополнительные опции:</span>
+                  <strong id="bd-options">0 ₽</strong>
+                </div>
+              </div>
+
+              <form id="lead-form" novalidate onsubmit="submitLead(event)">
+                <!-- Скрытое антиспам-поле (honeypot) -->
+                <div class="hp-trap" aria-hidden="true">
+                  <label for="hp-website">Ваш сайт</label>
+                  <input type="text" id="hp-website" name="company_website" tabindex="-1" autocomplete="off" />
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="lead-name">Ваше имя *</label>
+                  <input type="text" id="lead-name" class="input-control" required placeholder="Например, Дмитрий" />
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="lead-phone">Телефон для связи *</label>
+                  <input type="tel" id="lead-phone" class="input-control" inputmode="tel" required
+                         oninput="formatPhoneInput(this)" placeholder="+7 (900) 000-00-00" />
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="lead-comment">Комментарий</label>
+                  <textarea id="lead-comment" class="input-control" placeholder="Адрес объекта, удобное время замера или пожелания"></textarea>
+                </div>
+
+                <label class="consent-row">
+                  <input type="checkbox" id="lead-consent" />
+                  <span>Согласен на обработку персональных данных для расчёта стоимости работ</span>
+                </label>
+
+                <div class="form-error" id="form-error" role="alert" aria-live="assertive"></div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="submit-btn">
+                  Отправить заявку на расчёт
+                </button>
+              </form>
+
+              <div class="result-box" id="result-box" role="status" aria-live="polite">
+                <div class="result-box-inner">
+                  <div class="result-box-content">
+                    <h4 id="result-title">Заявка сформирована</h4>
+                    <p id="result-desc"></p>
+                    <div class="result-preview" id="result-preview"></div>
+                    <button type="button" class="copy-btn" id="copy-btn" onclick="copyOrderText()">
+                      Скопировать текст заявки
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    /* =====================================================================
+       ЕДИНЫЙ ОБЪЕКТ НАСТРОЕК (CONFIG)
+       Чтобы адаптировать калькулятор под нового клиента, меняйте только этот блок
+       ===================================================================== */
+    const CONFIG = {
+      // 1. Брендинг, акцентный цвет и заголовки
+      companyName: 'Ваша компания',
+      accentColor: '#C92A32', // Подставляется в CSS-переменные :root одной строкой
+      headerSubtitle: 'Онлайн-калькулятор стоимости работ',
+      heroTitle: 'Расчёт стоимости работ по вашим параметрам',
+      heroSubtitle: 'Выберите направление услуг и вариант исполнения, укажите объём и опции — расчёт обновится автоматически.',
+
+      // 2. 5 категорий услуг со скриншота
+      categories: [
+        {
+          id: 'partitions',
+          badge: 'Коммерческие помещения',
+          title: 'Изготовление офисных перегородок',
+          description: 'Стационарные, цельностеклянные и звукоизоляционные перегородки с установкой дверей.'
+        },
+        {
+          id: 'window_repair',
+          badge: 'Сервис окон',
+          title: 'Ремонт окон',
+          description: 'Регулировка створок, замена уплотнителя и фурнитуры, устранение продувания.'
+        },
+        {
+          id: 'balcony_repair',
+          badge: 'Остекление и герметизация',
+          title: 'Ремонт балконов',
+          description: 'Восстановление остекления, герметизация козырька и швов, замена стеклопакетов.'
+        },
+        {
+          id: 'balcony_finish',
+          badge: 'Внутренние работы',
+          title: 'Отделка балкона',
+          description: 'Обшивка стен и потолка панелями, евровагонкой или гипсокартоном, настил пола.'
+        },
+        {
+          id: 'balcony_insulation',
+          badge: 'Теплоизоляция',
+          title: 'Утепление балконов',
+          description: 'Многослойное утепление стен, парапета, пола и потолка с пароизоляцией.'
+        }
+      ],
+
+      // 3. По 3 варианта работ на каждую из 5 категорий (15 карточек)
+      // unitType: 'm2' | 'units'
+      // silhouette: 'partition' | 'window' | 'balcony_repair' | 'balcony_finish' | 'balcony_insulation'
+      models: [
+        // --- 1. Изготовление офисных перегородок (3 варианта) ---
+        {
+          id: 'part-frame',
+          categoryId: 'partitions',
+          title: 'Каркасные комбинированные перегородки',
+          subtitle: 'Алюминиевый профиль, глухой низ из ЛДСП и верхнее остекление для зонирования офиса.',
+          basePrice: 54000,
+          unitType: 'm2',
+          defaultQty: 12,
+          silhouette: 'partition',
+          tone: 'stub-tone-1'
+        },
+        {
+          id: 'part-glass',
+          categoryId: 'partitions',
+          title: 'Цельностеклянные перегородки',
+          subtitle: 'Закалённое стекло 10 мм в зажимном профиле для переговорных и светлых рабочих зон.',
+          basePrice: 72000,
+          unitType: 'm2',
+          defaultQty: 12,
+          silhouette: 'partition',
+          tone: 'stub-tone-2'
+        },
+        {
+          id: 'part-acoustic',
+          categoryId: 'partitions',
+          title: 'Перегородки с повышенной звукоизоляцией',
+          subtitle: 'Двойной витраж или усиленный контур уплотнения для кабинетов руководителей.',
+          basePrice: 86000,
+          unitType: 'm2',
+          defaultQty: 14,
+          silhouette: 'partition',
+          tone: 'stub-tone-3'
+        },
+
+        // --- 2. Ремонт окон (3 варианта) ---
+        {
+          id: 'win-service',
+          categoryId: 'window_repair',
+          title: 'Регулировка створок и замена уплотнителя',
+          subtitle: 'Восстановление геометрии створки, смазка механизмов и монтаж нового контура уплотнения.',
+          basePrice: 4800,
+          unitType: 'units',
+          defaultQty: 2,
+          silhouette: 'window',
+          tone: 'stub-tone-2'
+        },
+        {
+          id: 'win-hardware',
+          categoryId: 'window_repair',
+          title: 'Замена оконной фурнитуры и ручек',
+          subtitle: 'Установка поворотно-откидного механизма, прижимов и противовзломных элементов.',
+          basePrice: 7900,
+          unitType: 'units',
+          defaultQty: 2,
+          silhouette: 'window',
+          tone: 'stub-tone-1'
+        },
+        {
+          id: 'win-glass',
+          categoryId: 'window_repair',
+          title: 'Замена стеклопакета и герметизация',
+          subtitle: 'Изготовление и установка нового одно- или двухкамерного стеклопакета в размер.',
+          basePrice: 11500,
+          unitType: 'units',
+          defaultQty: 2,
+          silhouette: 'window',
+          tone: 'stub-tone-3'
+        },
+
+        // --- 3. Ремонт балконов (3 варианта) ---
+        {
+          id: 'bal-rep-seal',
+          categoryId: 'balcony_repair',
+          title: 'Устранение протечек и герметизация швов',
+          subtitle: 'Герметизация козырька, монтажных стыков и отливов со стороны улицы и помещения.',
+          basePrice: 9500,
+          unitType: 'units',
+          defaultQty: 4,
+          silhouette: 'balcony_repair',
+          tone: 'stub-tone-1'
+        },
+        {
+          id: 'bal-rep-sash',
+          categoryId: 'balcony_repair',
+          title: 'Ремонт раздвижных и распашных створок',
+          subtitle: 'Замена роликов, щёточного уплотнителя, замков и регулировка балконного остекления.',
+          basePrice: 12500,
+          unitType: 'units',
+          defaultQty: 4,
+          silhouette: 'balcony_repair',
+          tone: 'stub-tone-2'
+        },
+        {
+          id: 'bal-rep-complex',
+          categoryId: 'balcony_repair',
+          title: 'Комплексное восстановление остекления и парапета',
+          subtitle: 'Укрепление основания, замена повреждённых элементов и полная герметизация контура.',
+          basePrice: 24000,
+          unitType: 'units',
+          defaultQty: 5,
+          silhouette: 'balcony_repair',
+          tone: 'stub-tone-3'
+        },
+
+        // --- 4. Отделка балкона (3 варианта) ---
+        {
+          id: 'bal-fin-pvc',
+          categoryId: 'balcony_finish',
+          title: 'Отделка стеновыми панелями ПВХ',
+          subtitle: 'Практичная влагостойкая обшивка стен и потолка по деревянной обрешётке.',
+          basePrice: 26000,
+          unitType: 'm2',
+          defaultQty: 4,
+          silhouette: 'balcony_finish',
+          tone: 'stub-tone-3'
+        },
+        {
+          id: 'bal-fin-wood',
+          categoryId: 'balcony_finish',
+          title: 'Обшивка деревянной евровагонкой',
+          subtitle: 'Экологичная отделка из камерной древесины сорт А с защитной пропиткой.',
+          basePrice: 34000,
+          unitType: 'm2',
+          defaultQty: 4,
+          silhouette: 'balcony_finish',
+          tone: 'stub-tone-1'
+        },
+        {
+          id: 'bal-fin-key',
+          categoryId: 'balcony_finish',
+          title: 'Чистовая отделка балкона «под ключ»',
+          subtitle: 'Выравнивание, обшивка стен, монтаж потолка, напольного покрытия и плинтусов.',
+          basePrice: 44000,
+          unitType: 'm2',
+          defaultQty: 5,
+          silhouette: 'balcony_finish',
+          tone: 'stub-tone-2'
+        },
+
+        // --- 5. Утепление балконов (3 варианта) ---
+        {
+          id: 'bal-ins-base',
+          categoryId: 'balcony_insulation',
+          title: 'Базовое утепление стен и парапета',
+          subtitle: 'Монтаж плит экструдированного пенополистирола с проклейкой всех стыков.',
+          basePrice: 19500,
+          unitType: 'm2',
+          defaultQty: 14,
+          silhouette: 'balcony_insulation',
+          tone: 'stub-tone-2'
+        },
+        {
+          id: 'bal-ins-thermo',
+          categoryId: 'balcony_insulation',
+          title: 'Комплексное утепление «Термос»',
+          subtitle: 'Двойной контур теплоизоляции с фольгированным паробарьером по всему периметру.',
+          basePrice: 29000,
+          unitType: 'm2',
+          defaultQty: 16,
+          silhouette: 'balcony_insulation',
+          tone: 'stub-tone-1'
+        },
+        {
+          id: 'bal-ins-room',
+          categoryId: 'balcony_insulation',
+          title: 'Утепление под присоединение к комнате',
+          subtitle: 'Усиленная тепло- и пароизоляция пола, потолка, парапета и боковых стен.',
+          basePrice: 38000,
+          unitType: 'm2',
+          defaultQty: 18,
+          silhouette: 'balcony_insulation',
+          tone: 'stub-tone-3'
+        }
+      ],
+
+      // 4. Специфические параметры, материалы и опции для каждой из 5 категорий
+      spreadPercent: 10, // Разброс ориентировочной сметы (±10%)
+      serviceConfigs: {
+        partitions: {
+          layoutLabel: 'Тип перегородки',
+          layouts: [
+            { id: 'straight', title: 'Прямая линия', note: 'От стены до стены', extraPrice: 0 },
+            { id: 'corner', title: 'Угловая / кабинет', note: 'С поворотом на 90°', extraPrice: 8500 }
+          ],
+          primaryDim: { label: 'Площадь перегородок', unit: 'м²', min: 4, max: 150, step: 1, baseQty: 12, pricePerUnit: 4100 },
+          secondaryDim: { enabled: true, label: 'Количество дверных блоков', unit: 'шт.', min: 0, max: 15, step: 1, baseQty: 1, pricePerUnit: 11500 },
+          materialLabel: 'Профиль и заполнение',
+          materials: [
+            { id: 'alu_combo', title: 'Алюминий + ЛДСП/стекло', note: 'Базовый стандарт', multiplier: 1.0, swatch: 'linear-gradient(135deg, #d7dde5 0%, #bcc5d1 100%)' },
+            { id: 'glass_10', title: 'Закалённое стекло 10 мм', note: 'Прозрачное / осветлённое', multiplier: 1.24, swatch: 'linear-gradient(135deg, #e4f0f5 0%, #cde2ec 100%)' },
+            { id: 'double_glass', title: 'Двойной витраж', note: 'Повышенная тишина', multiplier: 1.42, swatch: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)' }
+          ],
+          extras: [
+            { id: 'film', title: 'Матирование или брендирование плёнкой', price: 4500 },
+            { id: 'locks', title: 'Установка офисных замков и доводчиков', price: 5800 },
+            { id: 'night_work', title: 'Монтаж в вечернее время или выходные', price: 7000 }
+          ]
+        },
+
+        window_repair: {
+          layoutLabel: 'Тип оконной конструкции',
+          layouts: [
+            { id: 'pvc', title: 'Пластиковые окна (ПВХ)', note: 'Стандартный профиль', extraPrice: 0 },
+            { id: 'wood_alu', title: 'Дерево или алюминий', note: 'Евроокна и витражи', extraPrice: 2500 }
+          ],
+          primaryDim: { label: 'Количество створок / окон', unit: 'шт.', min: 1, max: 20, step: 1, baseQty: 2, pricePerUnit: 1900 },
+          secondaryDim: { enabled: true, label: 'Замена уплотнителя', unit: 'п.м.', min: 0, max: 80, step: 2, baseQty: 10, pricePerUnit: 240 },
+          materialLabel: 'Комплектующие и уплотнитель',
+          materials: [
+            { id: 'std_kit', title: 'Стандарт (EPDM)', note: 'Каучуковый контур', multiplier: 1.0, swatch: 'linear-gradient(135deg, #4b5563 0%, #374151 100%)' },
+            { id: 'silicone', title: 'Силикон Премиум', note: 'Морозостойкий белый/серый', multiplier: 1.18, swatch: 'linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%)' },
+            { id: 'roto_maco', title: 'Усиленная фурнитура', note: 'Европейский комплект', multiplier: 1.35, swatch: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)' }
+          ],
+          extras: [
+            { id: 'mosquito', title: 'Изготовление и установка москитных сеток', price: 2400 },
+            { id: 'slopes', title: 'Отделка откосов и герметизация подоконника', price: 4900 },
+            { id: 'child_lock', title: 'Установка детских замков безопасности', price: 1600 }
+          ]
+        },
+
+        balcony_repair: {
+          layoutLabel: 'Конфигурация балкона',
+          layouts: [
+            { id: 'straight', title: 'Прямая лоджия', note: 'Одна фасадная линия', extraPrice: 0 },
+            { id: 'u_shape', title: 'Угловой или П-образный', note: 'С боковыми секциями', extraPrice: 4800 }
+          ],
+          primaryDim: { label: 'Длина остекления / парапета', unit: 'п.м.', min: 2, max: 15, step: 0.5, baseQty: 4, pricePerUnit: 2800 },
+          secondaryDim: { enabled: true, label: 'Количество створок в работе', unit: 'шт.', min: 1, max: 10, step: 1, baseQty: 2, pricePerUnit: 1600 },
+          materialLabel: 'Тип остекления на объекте',
+          materials: [
+            { id: 'alu_slide', title: 'Алюминиевое раздвижное', note: 'Холодное остекление', multiplier: 1.0, swatch: 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)' },
+            { id: 'pvc_warm', title: 'Пластиковое распашное', note: 'Тёплое остекление', multiplier: 1.2, swatch: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' },
+            { id: 'facade', title: 'Фасадное остекление', note: 'Высотные работы / гермет', multiplier: 1.38, swatch: 'linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%)' }
+          ],
+          extras: [
+            { id: 'visor', title: 'Герметизация верхнего козырька и отливов', price: 4200 },
+            { id: 'glass_unit', title: 'Замена разбитого стекла или стеклопакета', price: 5500 },
+            { id: 'parapet_fix', title: 'Укрепление и выравнивание парапета', price: 6800 }
+          ]
+        },
+
+        balcony_finish: {
+          layoutLabel: 'Тип помещения',
+          layouts: [
+            { id: 'loggia', title: 'Лоджия', note: 'Закрытая с трёх сторон', extraPrice: 0 },
+            { id: 'balcony', title: 'Балкон (Г / П-образный)', note: 'С выносом или углами', extraPrice: 5500 }
+          ],
+          primaryDim: { label: 'Площадь балкона по полу', unit: 'м²', min: 2, max: 20, step: 0.5, baseQty: 4, pricePerUnit: 5400 },
+          secondaryDim: { enabled: true, label: 'Высота потолка', unit: 'см', min: 220, max: 320, step: 5, baseQty: 260, pricePerUnit: 45 },
+          materialLabel: 'Материал обшивки стен и потолка',
+          materials: [
+            { id: 'pvc_panel', title: 'Панели ПВХ', note: 'Матовые / ламинированные', multiplier: 1.0, swatch: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' },
+            { id: 'wood_lining', title: 'Евровагонка (сорт А)', note: 'Натуральная древесина', multiplier: 1.25, swatch: 'repeating-linear-gradient(90deg, #e6ccb2 0px, #ddb892 7px, #ede0d4 14px)' },
+            { id: 'gkl_paint', title: 'Влагостойкий ГКЛ', note: 'Под покраску / штукатурку', multiplier: 1.35, swatch: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)' }
+          ],
+          extras: [
+            { id: 'floor', title: 'Настил пола по лагам (ламинат / линолеум)', price: 6900 },
+            { id: 'electrics', title: 'Вывод электрики, розеток и светильников', price: 4800 },
+            { id: 'trash', title: 'Вынос и вывоз строительного мусора', price: 3200 }
+          ]
+        },
+
+        balcony_insulation: {
+          layoutLabel: 'Задача теплоизоляции',
+          layouts: [
+            { id: 'warm_balcony', title: 'Тёплый балкон', note: 'Комфортная температура зимой', extraPrice: 0 },
+            { id: 'join_room', title: 'Объединение с комнатой', note: 'Максимальный тепловой контур', extraPrice: 7500 }
+          ],
+          primaryDim: { label: 'Площадь утепления (стены, пол, потолок)', unit: 'м²', min: 4, max: 45, step: 1, baseQty: 14, pricePerUnit: 1850 },
+          secondaryDim: { enabled: true, label: 'Толщина плит утеплителя', unit: 'мм', min: 30, max: 100, step: 10, baseQty: 50, pricePerUnit: 85 },
+          materialLabel: 'Теплоизоляционный пирог',
+          materials: [
+            { id: 'penoplex', title: 'Пеноплэкс (ЭППС)', note: 'Плиты высокой плотности', multiplier: 1.0, swatch: 'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)' },
+            { id: 'penoplex_foil', title: 'Пеноплэкс + Пенофол', note: 'С отражающей пароизоляцией', multiplier: 1.18, swatch: 'linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)' },
+            { id: 'mineral_wool', title: 'Каменная вата + мембрана', note: 'Тепло- и шумоизоляция', multiplier: 1.26, swatch: 'linear-gradient(135deg, #fef08a 0%, #fde047 100%)' }
+          ],
+          extras: [
+            { id: 'warm_floor', title: 'Монтаж электрического тёплого пола', price: 9500 },
+            { id: 'foam_block', title: 'Кладка и утепление парапета из пеноблока', price: 8200 },
+            { id: 'trash', title: 'Вынос и вывоз строительного мусора', price: 3200 }
+          ]
+        }
+      },
+
+      // 5. Куда отправляется заявка (заглушки под нового клиента)
+      leadDelivery: {
+        mode: 'demo', // 'demo' — тестовый показ карточки в браузере; 'webhook' — отправка POST на endpoint
+        endpoint: '', // Например: 'https://ваш-домен.ru/api/send-lead.php'
+        telegramBotToken: 'YOUR_TELEGRAM_BOT_TOKEN', // Использовать только на сервере, не в браузере
+        telegramChatId: 'YOUR_CHAT_ID'              // Идентификатор чата получателя заявок
+      }
+    };
+
+    /* =====================================================================
+       СОСТОЯНИЕ ПРИЛОЖЕНИЯ
+       ===================================================================== */
+    const state = {
+      step: 1,
+      visibleStep: 1,
+      categoryId: null,
+      modelId: null,
+      layoutId: null,
+      primaryQty: 10,
+      secondaryQty: 1,
+      materialId: null,
+      extras: new Set(),
+      openedAt: Date.now()
+    };
+
+    const displayedTotals = {
+      baseAndSize: 0,
+      layoutAndMaterial: 0,
+      optionsSum: 0,
+      total: 0,
+      minRange: 0,
+      maxRange: 0
+    };
+    let priceAnimFrameId = null;
+    let stepTransitionTimer = null;
+
+    /* =====================================================================
+       ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+       ===================================================================== */
+    function formatRub(amount) {
+      return Math.round(amount).toLocaleString('ru-RU') + ' ₽';
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function shadeHexColor(hex, percent) {
+      const clean = String(hex || '').replace('#', '');
+      if (clean.length !== 6) return hex;
+      const num = parseInt(clean, 16);
+      const amt = Math.round(2.55 * percent);
+      const r = Math.min(255, Math.max(0, (num >> 16) + amt));
+      const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + amt));
+      const b = Math.min(255, Math.max(0, (num & 0x0000ff) + amt));
+      return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = String(hex || '').replace('#', '');
+      if (clean.length !== 6) return `rgba(201, 42, 50, ${alpha})`;
+      const num = parseInt(clean, 16);
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function applyConfigBranding() {
+      const root = document.documentElement;
+      root.style.setProperty('--accent', CONFIG.accentColor);
+      root.style.setProperty('--accent-hover', shadeHexColor(CONFIG.accentColor, -14));
+      root.style.setProperty('--accent-soft', hexToRgba(CONFIG.accentColor, 0.08));
+      root.style.setProperty('--accent-border', hexToRgba(CONFIG.accentColor, 0.35));
+
+      document.getElementById('brand-name-text').textContent = CONFIG.companyName;
+      document.getElementById('header-subtitle').textContent = CONFIG.headerSubtitle;
+      document.getElementById('hero-title').textContent = CONFIG.heroTitle;
+      document.getElementById('hero-subtitle').textContent = CONFIG.heroSubtitle;
+      document.title = `${CONFIG.companyName} — ${CONFIG.headerSubtitle}`;
+    }
+
+    function handleOptionKey(event, callback) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        callback();
+      }
+    }
+
+    /* =====================================================================
+       ШАГ 1: РЕНДЕР 5 КАТЕГОРИЙ УСЛУГ
+       ===================================================================== */
+    function renderCategories() {
+      const grid = document.getElementById('categories-grid');
+      grid.innerHTML = CONFIG.categories.map((cat, idx) => `
+        <article class="card" style="--i: ${idx};">
+          <div>
+            <span class="category-badge">${escapeHtml(cat.badge)}</span>
+            <h3>${escapeHtml(cat.title)}</h3>
+            <p>${escapeHtml(cat.description)}</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-full" onclick="selectCategory('${cat.id}')">
+            Выбрать услугу →
+          </button>
+        </article>
+      `).join('');
+    }
+
+    function selectCategory(categoryId) {
+      state.categoryId = categoryId;
+      const cat = CONFIG.categories.find(c => c.id === categoryId);
+      document.getElementById('models-section-title').textContent =
+        cat ? `${cat.title}: выберите вариант работ` : 'Выберите вариант работ';
+      renderModels();
+      goToStep(2);
+    }
+
+    /* =====================================================================
+       ШАГ 2: РЕНДЕР ВАРИАНТОВ РАБОТ С ГЕОМЕТРИЧЕСКИМИ CSS-СИЛУЭТАМИ
+       ===================================================================== */
+    function buildSilhouetteHtml(type) {
+      if (type === 'partition') {
+        return `
+          <div class="sil-partition sil-anim" aria-hidden="true">
+            <div class="pane"><div class="glass-top"></div><div class="solid-bottom"></div></div>
+            <div class="door-leaf"></div>
+            <div class="pane"><div class="glass-top"></div><div class="solid-bottom"></div></div>
+          </div>
+        `;
+      }
+      if (type === 'window') {
+        return `
+          <div class="sil-window sil-anim" aria-hidden="true">
+            <div class="sash"></div>
+            <div class="sash active-sash"></div>
+          </div>
+        `;
+      }
+      if (type === 'balcony_repair') {
+        return `
+          <div class="sil-balcony-repair sil-anim" aria-hidden="true">
+            <div class="glazing-row"><span></span><span></span><span></span><span></span></div>
+            <div class="parapet-row"></div>
+          </div>
+        `;
+      }
+      if (type === 'balcony_finish') {
+        return `
+          <div class="sil-balcony-finish sil-anim" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        `;
+      }
+      return `
+        <div class="sil-balcony-insulation sil-anim" aria-hidden="true">
+          <div class="layer-wall"></div>
+          <div class="layer-foam"></div>
+          <div class="layer-foil"></div>
+          <div class="layer-finish"></div>
+        </div>
+      `;
+    }
+
+    function renderModels() {
+      const grid = document.getElementById('models-grid');
+      const models = CONFIG.models.filter(m => m.categoryId === state.categoryId);
+
+      grid.innerHTML = models.map((model, idx) => {
+        const unitLabel = model.unitType === 'm2' ? 'м²' : 'ед.';
+        return `
+          <article class="card" style="--i: ${idx};">
+            <div>
+              <div class="model-stub ${escapeHtml(model.tone || 'stub-tone-1')}">
+                ${buildSilhouetteHtml(model.silhouette)}
+              </div>
+              <h3>${escapeHtml(model.title)}</h3>
+              <p>${escapeHtml(model.subtitle)}</p>
+            </div>
+            <div>
+              <div class="model-meta">
+                <span class="model-dims">База: от ${model.defaultQty} ${unitLabel}</span>
+                <span class="model-price">от ${formatRub(model.basePrice)}</span>
+              </div>
+              <button type="button" class="btn btn-primary btn-full" onclick="selectModel('${model.id}')">
+                Рассчитать стоимость
+              </button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    /* =====================================================================
+       ШАГ 3: КОНФИГУРАТОР ВЫБРАННОГО ВАРИАНТА (БЕЗ ФОТО/СИЛУЭТОВ) И СМЕТА
+       ===================================================================== */
+    function getActiveServiceConfig() {
+      return CONFIG.serviceConfigs[state.categoryId] || CONFIG.serviceConfigs.balcony_finish;
+    }
+
+    function selectModel(modelId) {
+      const model = CONFIG.models.find(m => m.id === modelId);
+      if (!model) return;
+
+      const srvCfg = CONFIG.serviceConfigs[model.categoryId];
+
+      state.modelId = model.id;
+      state.primaryQty = model.defaultQty;
+      state.secondaryQty = srvCfg.secondaryDim.baseQty;
+      state.layoutId = srvCfg.layouts[0].id;
+      state.materialId = srvCfg.materials[0].id;
+      state.extras.clear();
+      state.openedAt = Date.now();
+
+      const cat = CONFIG.categories.find(c => c.id === model.categoryId);
+      document.getElementById('selected-cat-badge').textContent = cat ? cat.title : '';
+      document.getElementById('selected-model-title').textContent = model.title;
+
+      hideFormError();
+      document.getElementById('result-box').classList.remove('visible');
+
+      setupServiceControls(srvCfg);
+      renderLayouts(srvCfg);
+      renderMaterials(srvCfg);
+      renderExtras(srvCfg);
+      checkCustomDimensionsNotice();
+      recalculatePrice(true);
+      goToStep(3);
+    }
+
+    function setupServiceControls(srvCfg) {
+      document.getElementById('layouts-group-label').textContent = srvCfg.layoutLabel;
+      document.getElementById('materials-group-label').textContent = srvCfg.materialLabel;
+
+      // Основной объём
+      const pCfg = srvCfg.primaryDim;
+      document.getElementById('primary-dim-label').textContent = pCfg.label;
+      document.getElementById('primary-dim-unit').textContent = pCfg.unit;
+      const pRange = document.getElementById('primary-range');
+      const pNum = document.getElementById('primary-num');
+      pRange.min = pCfg.min;
+      pRange.max = pCfg.max;
+      pRange.step = pCfg.step;
+      pRange.value = state.primaryQty;
+      pNum.step = pCfg.step;
+      pNum.value = state.primaryQty;
+      document.getElementById('primary-bounds').innerHTML =
+        `<span>от ${pCfg.min} ${pCfg.unit}</span><span>до ${pCfg.max} ${pCfg.unit}</span>`;
+
+      // Дополнительный параметр (плавное раскрытие через CSS Grid)
+      const sCfg = srvCfg.secondaryDim;
+      const collapseEl = document.getElementById('secondary-collapse');
+      if (sCfg && sCfg.enabled) {
+        document.getElementById('secondary-dim-label').textContent = sCfg.label;
+        document.getElementById('secondary-dim-unit').textContent = sCfg.unit;
+        const sRange = document.getElementById('secondary-range');
+        const sNum = document.getElementById('secondary-num');
+        sRange.min = sCfg.min;
+        sRange.max = sCfg.max;
+        sRange.step = sCfg.step;
+        sRange.value = state.secondaryQty;
+        sNum.step = sCfg.step;
+        sNum.value = state.secondaryQty;
+        document.getElementById('secondary-bounds').innerHTML =
+          `<span>от ${sCfg.min} ${sCfg.unit}</span><span>до ${sCfg.max} ${sCfg.unit}</span>`;
+        collapseEl.classList.add('is-open');
+        collapseEl.setAttribute('aria-hidden', 'false');
+      } else {
+        collapseEl.classList.remove('is-open');
+        collapseEl.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    function syncDimension(which, rawValue, fromNumberInput) {
+      const srvCfg = getActiveServiceConfig();
+      const cfg = which === 'primary' ? srvCfg.primaryDim : srvCfg.secondaryDim;
+      const parsed = cfg.step < 1 ? parseFloat(rawValue) : parseInt(rawValue, 10);
+
+      if (fromNumberInput) {
+        // Разрешаем вводить нестандартные значения без блокировки
+        const fallback = which === 'primary' ? cfg.min : 0;
+        const val = Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+        if (which === 'primary') state.primaryQty = val;
+        else state.secondaryQty = val;
+
+        const rangeEl = document.getElementById(`${which}-range`);
+        rangeEl.value = Math.min(Math.max(val, cfg.min), cfg.max);
+      } else {
+        const val = Number.isFinite(parsed) ? parsed : cfg.min;
+        if (which === 'primary') state.primaryQty = val;
+        else state.secondaryQty = val;
+        document.getElementById(`${which}-num`).value = val;
+      }
+
+      checkCustomDimensionsNotice();
+      recalculatePrice();
+    }
+
+    function checkCustomDimensionsNotice() {
+      const srvCfg = getActiveServiceConfig();
+      const pCfg = srvCfg.primaryDim;
+      const sCfg = srvCfg.secondaryDim;
+
+      const isOutOfBounds =
+        state.primaryQty < pCfg.min || state.primaryQty > pCfg.max ||
+        (sCfg && sCfg.enabled && (state.secondaryQty < sCfg.min || state.secondaryQty > sCfg.max));
+
+      const noteEl = document.getElementById('custom-size-note');
+      if (isOutOfBounds) {
+        noteEl.textContent = 'Указан нестандартный объём — подготовим индивидуальный расчёт, точную смету подтвердит инженер на замере.';
+        noteEl.classList.add('custom-warn');
+      } else {
+        noteEl.textContent = 'Бесплатный выезд специалиста для точного замера и фиксации сметы.';
+        noteEl.classList.remove('custom-warn');
+      }
+    }
+
+    function renderLayouts(srvCfg) {
+      const grid = document.getElementById('layouts-grid');
+      grid.innerHTML = srvCfg.layouts.map(item => {
+        const selected = state.layoutId === item.id;
+        return `
+          <div class="option-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected}" tabindex="0"
+               onclick="setLayout('${item.id}')" onkeydown="handleOptionKey(event, () => setLayout('${item.id}'))">
+            <div class="option-card-top">${escapeHtml(item.title)}</div>
+            <div class="option-card-sub">
+              ${escapeHtml(item.note)}${item.extraPrice ? ' (+' + formatRub(item.extraPrice) + ')' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setLayout(id) {
+      state.layoutId = id;
+      renderLayouts(getActiveServiceConfig());
+      recalculatePrice();
+    }
+
+    function renderMaterials(srvCfg) {
+      const grid = document.getElementById('materials-grid');
+      grid.innerHTML = srvCfg.materials.map(mat => {
+        const selected = state.materialId === mat.id;
+        return `
+          <div class="option-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected}" tabindex="0"
+               onclick="setMaterial('${mat.id}')" onkeydown="handleOptionKey(event, () => setMaterial('${mat.id}'))">
+            <div class="option-card-top">
+              <span class="swatch-chip" style="background: ${mat.swatch};"></span>
+              <span>${escapeHtml(mat.title)}</span>
+            </div>
+            <div class="option-card-sub">${escapeHtml(mat.note)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setMaterial(id) {
+      state.materialId = id;
+      renderMaterials(getActiveServiceConfig());
+      recalculatePrice();
+    }
+
+    function renderExtras(srvCfg) {
+      const list = document.getElementById('extras-list');
+      list.innerHTML = srvCfg.extras.map(ex => `
+        <label class="check-item">
+          <span class="check-item-left">
+            <input type="checkbox" ${state.extras.has(ex.id) ? 'checked' : ''} onchange="toggleExtra('${ex.id}', this.checked)" />
+            <span>${escapeHtml(ex.title)}</span>
+          </span>
+          <span class="check-item-price">+${formatRub(ex.price)}</span>
+        </label>
+      `).join('');
+    }
+
+    function toggleExtra(id, isChecked) {
+      if (isChecked) {
+        state.extras.add(id);
+      } else {
+        state.extras.delete(id);
+      }
+      recalculatePrice();
+    }
+
+    function calculateTotals() {
+      const model = CONFIG.models.find(m => m.id === state.modelId);
+      const srvCfg = getActiveServiceConfig();
+      const layout = srvCfg.layouts.find(l => l.id === state.layoutId) || srvCfg.layouts[0];
+      const material = srvCfg.materials.find(m => m.id === state.materialId) || srvCfg.materials[0];
+      const pCfg = srvCfg.primaryDim;
+      const sCfg = srvCfg.secondaryDim;
+
+      const primaryDelta = (state.primaryQty - model.defaultQty) * pCfg.pricePerUnit;
+      const secondaryDelta = sCfg && sCfg.enabled
+        ? (state.secondaryQty - sCfg.baseQty) * sCfg.pricePerUnit
+        : 0;
+
+      const rawBase = model.basePrice + primaryDelta + secondaryDelta;
+      const baseAndSize = Math.max(model.basePrice * 0.7, rawBase);
+
+      const layoutExtra = layout ? layout.extraPrice : 0;
+      const withLayout = baseAndSize + layoutExtra;
+      const materialDelta = withLayout * ((material ? material.multiplier : 1) - 1);
+      const layoutAndMaterial = layoutExtra + materialDelta;
+
+      let extrasSum = 0;
+      state.extras.forEach(exId => {
+        const found = srvCfg.extras.find(e => e.id === exId);
+        if (found) extrasSum += found.price;
+      });
+
+      const total = Math.round((withLayout + materialDelta + extrasSum) / 100) * 100;
+      const spread = CONFIG.spreadPercent / 100;
+      const minRange = Math.round((total * (1 - spread)) / 500) * 500;
+      const maxRange = Math.round((total * (1 + spread)) / 500) * 500;
+
+      return {
+        baseAndSize,
+        layoutAndMaterial,
+        optionsSum: extrasSum,
+        total,
+        minRange,
+        maxRange
+      };
+    }
+
+    function applyDisplayedTotals(vals) {
+      document.getElementById('total-price').textContent = formatRub(vals.total);
+      document.getElementById('price-range-text').textContent =
+        `Диапазон (±${CONFIG.spreadPercent}%): от ${formatRub(vals.minRange)} до ${formatRub(vals.maxRange)}`;
+      document.getElementById('bd-base').textContent = formatRub(vals.baseAndSize);
+      document.getElementById('bd-material').textContent = formatRub(vals.layoutAndMaterial);
+      document.getElementById('bd-options').textContent = formatRub(vals.optionsSum);
+    }
+
+    function recalculatePrice(immediate = false) {
+      const target = calculateTotals();
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (priceAnimFrameId) {
+        cancelAnimationFrame(priceAnimFrameId);
+        priceAnimFrameId = null;
+      }
+
+      if (immediate || prefersReducedMotion) {
+        Object.assign(displayedTotals, target);
+        applyDisplayedTotals(displayedTotals);
+        return;
+      }
+
+      const startVals = { ...displayedTotals };
+      const startTime = performance.now();
+      const duration = 240;
+
+      function tick(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        for (const key of Object.keys(target)) {
+          displayedTotals[key] = startVals[key] + (target[key] - startVals[key]) * eased;
+        }
+
+        applyDisplayedTotals(displayedTotals);
+
+        if (progress < 1) {
+          priceAnimFrameId = requestAnimationFrame(tick);
+        } else {
+          Object.assign(displayedTotals, target);
+          applyDisplayedTotals(displayedTotals);
+          priceAnimFrameId = null;
+        }
+      }
+
+      priceAnimFrameId = requestAnimationFrame(tick);
+    }
+
+    /* =====================================================================
+       ДВУХФАЗНАЯ НАПРАВЛЕННАЯ АНИМАЦИЯ ПЕРЕХОДА МЕЖДУ ОКНАМИ 1, 2 И 3
+       ===================================================================== */
+    function updateStepperUI(targetStep) {
+      const progressEl = document.getElementById('stepper-progress');
+      if (progressEl) {
+        progressEl.style.width = `${(targetStep / 3) * 100}%`;
+      }
+
+      [1, 2, 3].forEach(num => {
+        const pill = document.getElementById(`nav-step-${num}`);
+        pill.classList.toggle('active', num === targetStep);
+        pill.classList.toggle('done', num < targetStep);
+
+        if (num === 1) pill.disabled = false;
+        if (num === 2) pill.disabled = !state.categoryId;
+        if (num === 3) pill.disabled = !state.modelId;
+      });
+    }
+
+    function replayCardCascade(screenEl) {
+      const cards = screenEl.querySelectorAll('.card');
+      cards.forEach((card, idx) => {
+        card.style.setProperty('--i', idx);
+        card.style.animation = 'none';
+        void card.offsetWidth;
+        card.style.animation = '';
+      });
+    }
+
+    function activateScreenImmediately(targetStep, isForward, animateEnter) {
+      [1, 2, 3].forEach(num => {
+        const scr = document.getElementById(`screen-${num}`);
+        scr.classList.remove('active', 'exit-forward', 'exit-backward', 'enter-forward', 'enter-backward');
+        if (num === targetStep) {
+          scr.classList.add('active');
+          if (animateEnter) {
+            void scr.offsetWidth;
+            scr.classList.add(isForward ? 'enter-forward' : 'enter-backward');
+          }
+          replayCardCascade(scr);
+        }
+      });
+      state.visibleStep = targetStep;
+    }
+
+    function goToStep(targetStep) {
+      if (targetStep === 2 && !state.categoryId) return;
+      if (targetStep === 3 && !state.modelId) return;
+
+      if (targetStep === state.step && state.visibleStep === targetStep && !stepTransitionTimer) {
+        return;
+      }
+
+      const currentVisibleStep = state.visibleStep;
+      const isForward = targetStep >= currentVisibleStep;
+      state.step = targetStep;
+
+      updateStepperUI(targetStep);
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (stepTransitionTimer) {
+        clearTimeout(stepTransitionTimer);
+        stepTransitionTimer = null;
+      }
+
+      if (prefersReducedMotion || currentVisibleStep === targetStep) {
+        activateScreenImmediately(targetStep, isForward, !prefersReducedMotion);
+        window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+        return;
+      }
+
+      // Фаза 1: плавный уход текущего видимого окна
+      [1, 2, 3].forEach(num => {
+        const scr = document.getElementById(`screen-${num}`);
+        scr.classList.remove('exit-forward', 'exit-backward', 'enter-forward', 'enter-backward');
+        if (num === currentVisibleStep) {
+          scr.classList.add('active');
+          void scr.offsetWidth;
+          scr.classList.add(isForward ? 'exit-forward' : 'exit-backward');
+        } else {
+          scr.classList.remove('active');
+        }
+      });
+
+      // Фаза 2: появление целевого окна после завершения ухода
+      stepTransitionTimer = setTimeout(() => {
+        stepTransitionTimer = null;
+        activateScreenImmediately(targetStep, isForward, true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 175);
+    }
+
+    /* =====================================================================
+       МАСКА ТЕЛЕФОНА, ВАЛИДАЦИЯ, АНТИСПАМ И ОТПРАВКА ЗАЯВКИ
+       ===================================================================== */
+    function formatPhoneInput(input) {
+      let digits = input.value.replace(/\D/g, '');
+      if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+      if (digits.length > 0 && !digits.startsWith('7')) digits = '7' + digits;
+      digits = digits.slice(0, 11);
+
+      let formatted = '';
+      if (digits.length > 0) formatted = '+7';
+      if (digits.length > 1) formatted += ' (' + digits.slice(1, 4);
+      if (digits.length >= 4) formatted += ') ' + digits.slice(4, 7);
+      if (digits.length >= 7) formatted += '-' + digits.slice(7, 9);
+      if (digits.length >= 9) formatted += '-' + digits.slice(9, 11);
+
+      input.value = formatted;
+    }
+
+    function showFormError(message) {
+      const box = document.getElementById('form-error');
+      box.textContent = message;
+      box.classList.add('visible');
+    }
+
+    function hideFormError() {
+      const box = document.getElementById('form-error');
+      box.textContent = '';
+      box.classList.remove('visible');
+    }
+
+    function generateOrderNumber() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = pad(now.getMonth() + 1);
+      const dd = pad(now.getDate());
+      const hh = pad(now.getHours());
+      const min = pad(now.getMinutes());
+      return `ЗК-${yy}${mm}${dd}-${hh}${min}`;
+    }
+
+    async function submitLead(event) {
+      event.preventDefault();
+      hideFormError();
+
+      // 1. Антиспам: honeypot + минимальное время заполнения (2.5 сек)
+      const hpValue = document.getElementById('hp-website').value;
+      if (hpValue && hpValue.trim() !== '') {
+        return;
+      }
+      if (Date.now() - state.openedAt < 2500) {
+        showFormError('Форма заполнена слишком быстро. Пожалуйста, проверьте параметры и повторите отправку.');
+        return;
+      }
+
+      // 2. Валидация обязательных полей
+      const nameVal = document.getElementById('lead-name').value.trim();
+      const phoneVal = document.getElementById('lead-phone').value.trim();
+      const phoneDigits = phoneVal.replace(/\D/g, '');
+      const commentVal = document.getElementById('lead-comment').value.trim();
+      const consentChecked = document.getElementById('lead-consent').checked;
+
+      if (!nameVal) {
+        showFormError('Укажите ваше имя.');
+        document.getElementById('lead-name').focus();
+        return;
+      }
+
+      if (phoneDigits.length < 11) {
+        showFormError('Введите корректный номер телефона из 11 цифр.');
+        document.getElementById('lead-phone').focus();
+        return;
+      }
+
+      if (!consentChecked) {
+        showFormError('Отметьте согласие на обработку персональных данных.');
+        document.getElementById('lead-consent').focus();
+        return;
+      }
+
+      const model = CONFIG.models.find(m => m.id === state.modelId);
+      const cat = CONFIG.categories.find(c => c.id === state.categoryId);
+      const srvCfg = getActiveServiceConfig();
+      const layout = srvCfg.layouts.find(l => l.id === state.layoutId) || srvCfg.layouts[0];
+      const material = srvCfg.materials.find(m => m.id === state.materialId) || srvCfg.materials[0];
+
+      const extrasTitles = Array.from(state.extras).map(id => {
+        const item = srvCfg.extras.find(e => e.id === id);
+        return item ? item.title : id;
+      });
+
+      const totals = calculateTotals();
+      const orderId = generateOrderNumber();
+
+      const pCfg = srvCfg.primaryDim;
+      const sCfg = srvCfg.secondaryDim;
+      const volumeDetails = sCfg && sCfg.enabled
+        ? `${pCfg.label}: ${state.primaryQty} ${pCfg.unit}; ${sCfg.label}: ${state.secondaryQty} ${sCfg.unit}`
+        : `${pCfg.label}: ${state.primaryQty} ${pCfg.unit}`;
+
+      const payload = {
+        orderId,
+        company: CONFIG.companyName,
+        category: cat ? cat.title : '',
+        variantId: model.id,
+        variantTitle: model.title,
+        configuration: layout.title,
+        volumeDetails,
+        material: material.title,
+        extras: extrasTitles.length ? extrasTitles.join(', ') : 'Без доп. опций',
+        estimatedTotal: totals.total,
+        estimatedRange: `от ${formatRub(totals.minRange)} до ${formatRub(totals.maxRange)}`,
+        clientName: nameVal,
+        clientPhone: phoneVal,
+        comment: commentVal,
+        recipientChatId: CONFIG.leadDelivery.telegramChatId
+      };
+
+      const orderSummaryText = [
+        `Заявка № ${payload.orderId} (${payload.company})`,
+        `Услуга: ${payload.category}`,
+        `Вариант работ: ${payload.variantTitle}`,
+        `Конфигурация: ${payload.configuration}`,
+        `Параметры: ${payload.volumeDetails}`,
+        `Материалы: ${payload.material}`,
+        `Доп. опции: ${payload.extras}`,
+        `Предварительная смета: ${formatRub(payload.estimatedTotal)} (${payload.estimatedRange})`,
+        `Клиент: ${payload.clientName}, ${payload.clientPhone}`,
+        payload.comment ? `Комментарий: ${payload.comment}` : null
+      ].filter(Boolean).join('\n');
+
+      const resultBox = document.getElementById('result-box');
+      const resultTitle = document.getElementById('result-title');
+      const resultDesc = document.getElementById('result-desc');
+      const resultPreview = document.getElementById('result-preview');
+      const submitBtn = document.getElementById('submit-btn');
+
+      if (CONFIG.leadDelivery.mode === 'webhook' && CONFIG.leadDelivery.endpoint) {
+        submitBtn.disabled = true;
+        try {
+          const response = await fetch(CONFIG.leadDelivery.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          resultTitle.textContent = `Заявка № ${orderId} отправлена`;
+          resultDesc.textContent = 'Расчёт передан специалисту. Ожидайте звонка для согласования замера.';
+          resultPreview.textContent = orderSummaryText;
+          resultBox.classList.add('visible');
+        } catch (err) {
+          showFormError('Не удалось отправить заявку. Проверьте адрес обработчика в CONFIG.leadDelivery.endpoint.');
+        } finally {
+          submitBtn.disabled = false;
+        }
+      } else {
+        resultTitle.textContent = `Демо-режим: заявка № ${orderId} сформирована`;
+        resultDesc.textContent = 'Ниже готовая карточка заявки для менеджера. Для реальной отправки задайте mode: "webhook" и endpoint в CONFIG.leadDelivery.';
+        resultPreview.textContent = orderSummaryText;
+        resultBox.classList.add('visible');
+      }
+    }
+
+    function copyOrderText() {
+      const text = document.getElementById('result-preview').textContent;
+      const btn = document.getElementById('copy-btn');
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+
+      try {
+        document.execCommand('copy');
+        btn.textContent = 'Текст заявки скопирован';
+        setTimeout(() => {
+          btn.textContent = 'Скопировать текст заявки';
+        }, 2000);
+      } catch (e) {
+        btn.textContent = 'Выделите текст выше и скопируйте вручную';
+      }
+
+      document.body.removeChild(ta);
+    }
+
+    /* =====================================================================
+       ГАРАНТИРОВАННАЯ ИНИЦИАЛИЗАЦИЯ ПОСЛЕ ЗАГРУЗКИ DOM
+       ===================================================================== */
+    let isInitialized = false;
+
+    function initApp() {
+      if (isInitialized) return;
+      isInitialized = true;
+      applyConfigBranding();
+      renderCategories();
+      updateStepperUI(1);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+    window.addEventListener('load', initApp);
+  </script>
+</body>
+</html>
